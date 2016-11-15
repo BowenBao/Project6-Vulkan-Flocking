@@ -58,11 +58,53 @@ void main()
 		vec2 vPos = particlesA[index].pos.xy;
     vec2 vVel = particlesA[index].vel.xy;
 
-		// clamp velocity for a more pleasing simulation.
-		vVel = normalize(vVel) * clamp(length(vVel), 0.0, 0.1);
+	vec2 vel1 = vec2(0.0, 0.0);
+	vec2 vel2 = vec2(0.0, 0.0);
+	vec2 vel3 = vec2(0.0, 0.0);
 
-		// kinematic update
-		vPos += vVel * ubo.deltaT;
+	float vel1Count = 0;
+	float vel3Count = 0;
+	
+	for (int i=0; i<ubo.particleCount; ++i)
+	{
+		if (index == i) continue;
+		float dist = length(vPos - particlesA[i].pos.xy);
+
+		if (dist < ubo.rule1Distance)
+		{
+			vel1 += particlesA[i].pos.xy;
+			vel1Count += 1.0;
+		}
+
+		if (dist < ubo.rule2Distance)
+		{
+			vel2 -= (particlesA[i].pos.xy - vPos);
+		}
+
+		if (dist < ubo.rule3Distance)
+		{
+			vel3 += particlesA[i].vel.xy;
+			vel3Count += 1.0;
+		}
+	}
+
+	if (vel1Count > 0)
+	{
+		vel1 /= vel1Count;
+		vVel += (vel1 - vPos) * ubo.rule1Scale;
+	}
+
+	vVel += vel2 * ubo.rule2Scale;
+
+	if (vel3Count > 0)
+	{
+		vel3 /= vel3Count;
+		vVel += vel3 * ubo.rule3Scale;
+	}
+
+	vVel = normalize(vVel) * clamp(length(vVel), 0.0, 0.1);
+
+	vPos += vVel * ubo.deltaT;
 
     // Wrap around boundary
 		if (vPos.x < -1.0) vPos.x = 1.0;
